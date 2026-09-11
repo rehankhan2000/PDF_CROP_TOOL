@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BABA COMPUTER - PDF ID Card Crop & Printer</title>
+  
+  <!-- PDF.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --success-hover: #059669;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      line-height: 1.5;
+      user-select: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.75rem 1.5rem;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.4rem;
+    }
+
+    /* Workflow Steps */
+    .steps-bar {
+      display: flex;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      gap: 0.5rem;
+    }
+
+    .step-item {
+      flex: 1;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding: 0.4rem 0.2rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+
+    .step-item.active {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    .step-item.completed {
+      color: var(--success);
+    }
+
+    /* Drop Zone / Upload */
+    .upload-card {
+      background: var(--card-bg);
+      border: 2px dashed var(--card-border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .upload-card:hover, .upload-card.dragover {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin-bottom: 0.75rem;
+    }
+
+    .upload-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .upload-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    #pdfFileInput {
+      display: none;
+    }
+
+    .btn-select {
+      display: inline-block;
+      margin-top: 1rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-select:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Status Alert & Spinner */
+    .status-box {
+      display: none;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .status-box.info {
+      display: flex;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #93c5fd;
+    }
+
+    .status-box.error {
+      display: flex;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Page Selector Bar */
+    .page-selector-bar {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .page-selector-bar.visible {
+      display: flex;
+    }
+
+    .page-selector-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .page-nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .select-input {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+
+    .controls-panel.visible {
+      display: block;
+    }
+
+    .panel-header {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* Preset Toggle Buttons */
+    .preset-toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #0f172a;
+      padding: 0.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+    }
+
+    .preset-btn {
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .control-group label {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-input-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .slider-input-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .num-input {
+      width: 70px;
+      padding: 0.35rem 0.5rem;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.875rem;
+      text-align: center;
+      outline: none;
+    }
+
+    .num-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Main Dual Workspace Grid */
+    .workspace-grid {
+      display: none;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .workspace-grid.visible {
+      display: grid;
+    }
+
+    @media (max-width: 768px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .workspace-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .workspace-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    /* Interactive Drag-to-Crop Canvas View */
+    .interactive-canvas-container {
+      position: relative;
+      width: 100%;
+      background: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+    }
+
+    #fullPageCanvas {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      background: #ffffff;
+    }
+
+    /* Drag Crop Overlay Box */
+    .crop-box-overlay {
+      position: absolute;
+      border: 2px dashed #60a5fa;
+      background: rgba(59, 130, 246, 0.2);
+      box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65);
+      cursor: move;
+      touch-action: none;
+      box-sizing: border-box;
+    }
+
+    .crop-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+    }
+
+    .handle-nw { top: -6px; left: -6px; cursor: nwse-resize; }
+    .handle-ne { top: -6px; right: -6px; cursor: nesw-resize; }
+    .handle-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+    .handle-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+
+    /* Output Card Canvas */
+    .output-canvas-wrapper {
+      width: 100%;
+      aspect-ratio: 85.6 / 53.98;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    }
+
+    .output-canvas-wrapper canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+    }
+
+    .preset-badge {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Action Buttons */
+    .actions-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.75rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: var(--text);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #475569;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Printer Tips Notice */
+    .print-tips {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      font-size: 0.85rem;
+      color: #fef08a;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .print-tips svg {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      fill: var(--warning);
+      margin-top: 2px;
+    }
+
+    .print-tips ul {
+      margin-left: 1.2rem;
+      margin-top: 0.3rem;
+    }
+
+    /* Custom Password Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 1rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+    }
+
+    .modal-content h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .modal-content p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+      outline: none;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Print Frame */
+    #printFrame {
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <h1>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>
+        BABA COMPUTER
+      </h1>
+      <p>Upload your PDF ID card, select page, crop accurately, and print to exact physical card size.</p>
+    </header>
+
+    <!-- Workflow Progress Bar -->
+    <div class="steps-bar">
+      <div class="step-item active" id="step1">1. Select PDF</div>
+      <div class="step-item" id="step2">2. Drag & Crop Page</div>
+      <div class="step-item" id="step3">3. Print Card</div>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="upload-card" id="dropZone">
+      <svg class="upload-icon" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      <div class="upload-title">Drag & Drop your ID Card PDF here</div>
+      <div class="upload-sub">Supports Password-Protected PDFs (.pdf)</div>
+      <button class="btn-select" onclick="document.getElementById('pdfFileInput').click()">Browse PDF File</button>
+      <input type="file" id="pdfFileInput" accept="application/pdf">
+    </div>
+
+    <!-- Status / Loading Area -->
+    <div class="status-box" id="statusBox">
+      <div class="spinner" id="statusSpinner"></div>
+      <span id="statusText">Processing PDF file...</span>
+    </div>
+
+    <!-- Page Selection Bar -->
+    <div class="page-selector-bar" id="pageSelectorBar">
+      <span class="page-selector-title">Select Page to Crop & Print:</span>
+      <div class="page-nav-controls">
+        <select id="pageSelectDropdown" class="select-input" onchange="changeActivePage(this.value)"></select>
+      </div>
+    </div>
+
+    <!-- Fine-Tuning Controls -->
+    <div class="controls-panel" id="controlsPanel">
+      <div class="panel-header">
+        <span>Crop Profile Settings</span>
+        
+        <!-- Print 1 & Print 2 Preset Selector -->
+        <div class="preset-toggle-container">
+          <button class="preset-btn active" id="btnPreset1" onclick="switchPreset('print1')">Print 1</button>
+          <button class="preset-btn" id="btnPreset2" onclick="switchPreset('print2')">Print 2</button>
+        </div>
+
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.8rem;" onclick="resetCurrentPreset()">Reset Profile</button>
+      </div>
+
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="numWidth">Crop Width (% of page):</label>
+          <div class="slider-input-row">
+            <input type="range" id="sliderWidth" min="30" max="98" step="0.5" value="80" oninput="syncFromSlider('width')">
+            <input type="number" id="numWidth" class="num-input" min="30" max="98" step="0.5" value="80" oninput="syncFromNumber('width')">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="numOffsetY">Vertical Offset (Y %):</label>
+          <div class="slider-input-row">
+            <input type="range" id="sliderOffsetY" min="-30" max="30" step="0.5" value="0" oninput="syncFromSlider('offsetY')">
+            <input type="number" id="numOffsetY" class="num-input" min="-30" max="30" step="0.5" value="0" oninput="syncFromNumber('offsetY')">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="numOffsetX">Horizontal Offset (X %):</label>
+          <div class="slider-input-row">
+            <input type="range" id="sliderOffsetX" min="-30" max="30" step="0.5" value="0" oninput="syncFromSlider('offsetX')">
+            <input type="number" id="numOffsetX" class="num-input" min="-30" max="30" step="0.5" value="0" oninput="syncFromNumber('offsetX')">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workspace Grid: Interactive Page & Output Preview -->
+    <div class="workspace-grid" id="workspaceGrid">
+      
+      <!-- Interactive Visual Drag-to-Crop Container -->
+      <div class="workspace-card">
+        <h3>
+          <span>Drag & Resize Crop Area</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Click & Drag Box</span>
+        </h3>
+        <div class="interactive-canvas-container" id="canvasContainer">
+          <canvas id="fullPageCanvas"></canvas>
+          
+          <!-- Visual Draggable & Resizable Box -->
+          <div class="crop-box-overlay" id="cropBoxOverlay">
+            <div class="crop-handle handle-nw" data-handle="nw"></div>
+            <div class="crop-handle handle-ne" data-handle="ne"></div>
+            <div class="crop-handle handle-sw" data-handle="sw"></div>
+            <div class="crop-handle handle-se" data-handle="se"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cropped Card Result Preview -->
+      <div class="workspace-card">
+        <h3>
+          <span>Cropped Card Result</span>
+          <span class="preset-badge" id="activePresetBadge">Print 1 Active</span>
+        </h3>
+        <div class="output-canvas-wrapper" style="margin-top: 1rem;">
+          <canvas id="cardCanvas"></canvas>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions-bar" style="width: 100%;">
+          <button class="btn btn-primary" style="flex: 1;" id="btnPrintCard" onclick="printCard()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Print Card
+          </button>
+
+          <button class="btn btn-secondary" onclick="resetAll()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            Reset
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Printer Setup Tips -->
+    <div class="print-tips">
+      <svg viewBox="0 0 24 24">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      <div>
+        <strong>Important Printer Setup Instructions:</strong>
+        <ul>
+          <li>When the browser print dialog opens, set <strong>Margins to "None"</strong>.</li>
+          <li>Set <strong>Scale to "100%" or "Actual Size"</strong> (Do NOT select "Fit to Printable Area").</li>
+          <li>Select your card/paper tray orientation appropriately.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Custom Password Modal -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-content">
+      <h3>Password Required</h3>
+      <p id="passwordModalText">This PDF document is encrypted. Please enter the password to unlock it.</p>
+      <input type="password" class="input-field" id="pdfPasswordInput" placeholder="Enter password..." onkeydown="if(event.key==='Enter') submitPassword()">
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="cancelPassword()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitPassword()">Unlock PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden iframe for printing -->
+  <iframe id="printFrame"></iframe>
+
+  <footer>
+    BABA COMPUTER &bull; Client-Side Browser Application &bull; GitHub Pages Ready
+  </footer>
+
+  <script>
+    // Set PDF.js Worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // Target Aspect Ratio for ID-1 ATM Card: 85.6mm / 53.98mm ≈ 1.585772
+    const TARGET_ASPECT_RATIO = 85.6 / 53.98;
+
+    // Default Presets
+    const DEFAULT_PRESETS = {
+      print1: { width: 80, offsetY: 0, offsetX: 0 },
+      print2: { width: 80, offsetY: 0, offsetX: 0 }
+    };
+
+    // State Variables
+    let presets = JSON.parse(JSON.stringify(DEFAULT_PRESETS));
+    let activePreset = 'print1';
+
+    let pdfDoc = null;
+    let pageCanvases = {}; // Rendered PDF page canvases map { pageNum: canvas }
+    let activePageNum = 1;
+    let passwordReasonCallback = null;
+
+    // Drag Interaction State
+    let isDragging = false;
+    let isResizing = false;
+    let resizeHandle = null;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialCropW = 0;
+    let initialCropX = 0;
+    let initialCropY = 0;
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const pdfFileInput = document.getElementById('pdfFileInput');
+    const statusBox = document.getElementById('statusBox');
+    const statusSpinner = document.getElementById('statusSpinner');
+    const statusText = document.getElementById('statusText');
+    const pageSelectorBar = document.getElementById('pageSelectorBar');
+    const pageSelectDropdown = document.getElementById('pageSelectDropdown');
+    const controlsPanel = document.getElementById('controlsPanel');
+    const workspaceGrid = document.getElementById('workspaceGrid');
+    const canvasContainer = document.getElementById('canvasContainer');
+    const fullPageCanvas = document.getElementById('fullPageCanvas');
+    const cropBoxOverlay = document.getElementById('cropBoxOverlay');
+    const cardCanvas = document.getElementById('cardCanvas');
+    const activePresetBadge = document.getElementById('activePresetBadge');
+    const btnPreset1 = document.getElementById('btnPreset1');
+    const btnPreset2 = document.getElementById('btnPreset2');
+
+    // Controls
+    const sliderWidth = document.getElementById('sliderWidth');
+    const numWidth = document.getElementById('numWidth');
+    const sliderOffsetY = document.getElementById('sliderOffsetY');
+    const numOffsetY = document.getElementById('numOffsetY');
+    const sliderOffsetX = document.getElementById('sliderOffsetX');
+    const numOffsetX = document.getElementById('numOffsetX');
+
+    // Initialize Presets from LocalStorage
+    function initPresets() {
+      try {
+        const savedPreset1 = localStorage.getItem('baba_preset_print1');
+        if (savedPreset1) presets.print1 = JSON.parse(savedPreset1);
+
+        const savedPreset2 = localStorage.getItem('baba_preset_print2');
+        if (savedPreset2) presets.print2 = JSON.parse(savedPreset2);
+
+        const savedActive = localStorage.getItem('baba_active_preset');
+        if (savedActive === 'print1' || savedActive === 'print2') {
+          activePreset = savedActive;
+        }
+      } catch (e) {
+        console.warn('Could not access localStorage:', e);
+      }
+
+      applyPresetToUI(activePreset);
+    }
+
+    function applyPresetToUI(presetName) {
+      activePreset = presetName;
+      const vals = presets[presetName] || DEFAULT_PRESETS[presetName];
+
+      sliderWidth.value = vals.width;
+      numWidth.value = vals.width;
+
+      sliderOffsetY.value = vals.offsetY;
+      numOffsetY.value = vals.offsetY;
+
+      sliderOffsetX.value = vals.offsetX;
+      numOffsetX.value = vals.offsetX;
+
+      // Update preset toggle buttons
+      btnPreset1.className = 'preset-btn ' + (presetName === 'print1' ? 'active' : '');
+      btnPreset2.className = 'preset-btn ' + (presetName === 'print2' ? 'active' : '');
+      activePresetBadge.textContent = (presetName === 'print1' ? 'Print 1 Active' : 'Print 2 Active');
+
+      try {
+        localStorage.setItem('baba_active_preset', presetName);
+      } catch (e) {}
+    }
+
+    function switchPreset(presetName) {
+      saveCurrentPresetValues();
+      applyPresetToUI(presetName);
+
+      if (pageCanvases[activePageNum]) {
+        processAndCropPage(activePageNum);
+      }
+    }
+
+    function saveCurrentPresetValues() {
+      const vals = {
+        width: parseFloat(numWidth.value) || 80,
+        offsetY: parseFloat(numOffsetY.value) || 0,
+        offsetX: parseFloat(numOffsetX.value) || 0
+      };
+
+      presets[activePreset] = vals;
+
+      try {
+        localStorage.setItem('baba_preset_' + activePreset, JSON.stringify(vals));
+      } catch (e) {}
+    }
+
+    function resetCurrentPreset() {
+      presets[activePreset] = JSON.parse(JSON.stringify(DEFAULT_PRESETS[activePreset]));
+      saveCurrentPresetValues();
+      applyPresetToUI(activePreset);
+
+      if (pageCanvases[activePageNum]) {
+        processAndCropPage(activePageNum);
+      }
+    }
+
+    // Syncing Controls
+    function syncFromSlider(type) {
+      if (type === 'width') numWidth.value = sliderWidth.value;
+      else if (type === 'offsetY') numOffsetY.value = sliderOffsetY.value;
+      else if (type === 'offsetX') numOffsetX.value = sliderOffsetX.value;
+
+      saveCurrentPresetValues();
+      if (pageCanvases[activePageNum]) {
+        processAndCropPage(activePageNum);
+      }
+    }
+
+    function syncFromNumber(type) {
+      if (type === 'width') sliderWidth.value = numWidth.value;
+      else if (type === 'offsetY') sliderOffsetY.value = numOffsetY.value;
+      else if (type === 'offsetX') sliderOffsetX.value = numOffsetX.value;
+
+      saveCurrentPresetValues();
+      if (pageCanvases[activePageNum]) {
+        processAndCropPage(activePageNum);
+      }
+    }
+
+    // Drag and Drop PDF File Upload
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        handleFileSelect(files[0]);
+      }
+    });
+
+    pdfFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    // Step Manager
+    function setStep(stepNum) {
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('step' + i);
+        if (i < stepNum) {
+          el.className = 'step-item completed';
+        } else if (i === stepNum) {
+          el.className = 'step-item active';
+        } else {
+          el.className = 'step-item';
+        }
+      }
+    }
+
+    // Status Notification
+    function showStatus(message, isError = false, isLoading = true) {
+      statusBox.style.display = 'flex';
+      statusBox.className = 'status-box ' + (isError ? 'error' : 'info');
+      statusSpinner.style.display = isLoading ? 'block' : 'none';
+      statusText.textContent = message;
+    }
+
+    function hideStatus() {
+      statusBox.style.display = 'none';
+    }
+
+    // Main File Handler
+    async function handleFileSelect(file) {
+      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        showStatus('Please select a valid PDF file (.pdf).', true, false);
+        return;
+      }
+
+      showStatus('Loading PDF file...', false, true);
+      setStep(1);
+
+      const fileReader = new FileReader();
+      fileReader.onload = async function () {
+        const typedarray = new Uint8Array(this.result);
+        await loadPdfData(typedarray);
+      };
+      fileReader.readAsArrayBuffer(file);
+    }
+
+    // PDF Loading Logic with Password Handling
+    async function loadPdfData(typedarray) {
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true
+      });
+
+      loadingTask.onPassword = function (callback, reason) {
+        passwordReasonCallback = callback;
+        showPasswordModal(reason);
+      };
+
+      try {
+        pdfDoc = await loadingTask.promise;
+        showStatus(`PDF Loaded successfully (${pdfDoc.numPages} page(s) found). Rendering...`, false, true);
+        await setupPageSelection();
+      } catch (err) {
+        console.error('PDF Loading Error:', err);
+        if (err.name === 'PasswordException') {
+          showStatus('Incorrect password or PDF unlocked cancelled.', true, false);
+        } else {
+          showStatus('Error opening PDF file: ' + (err.message || 'Unknown error'), true, false);
+        }
+      }
+    }
+
+    // Password Modal
+    function showPasswordModal(reason) {
+      const modal = document.getElementById('passwordModal');
+      const text = document.getElementById('passwordModalText');
+      const input = document.getElementById('pdfPasswordInput');
+      input.value = '';
+
+      if (reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD) {
+        text.textContent = 'Incorrect password. Please try again.';
+      } else {
+        text.textContent = 'This PDF is password-protected. Please enter the password to continue:';
+      }
+
+      modal.classList.add('active');
+      setTimeout(() => input.focus(), 100);
+    }
+
+    function submitPassword() {
+      const input = document.getElementById('pdfPasswordInput');
+      const modal = document.getElementById('passwordModal');
+      const pass = input.value;
+      modal.classList.remove('active');
+
+      if (passwordReasonCallback) {
+        passwordReasonCallback(pass);
+      }
+    }
+
+    function cancelPassword() {
+      const modal = document.getElementById('passwordModal');
+      modal.classList.remove('active');
+      showStatus('PDF password prompt cancelled.', true, false);
+    }
+
+    // Page Selector & Rendering
+    async function setupPageSelection() {
+      pageCanvases = {};
+      pageSelectDropdown.innerHTML = '';
+
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Page ${i}`;
+        pageSelectDropdown.appendChild(option);
+      }
+
+      if (pdfDoc.numPages > 1) {
+        pageSelectorBar.classList.add('visible');
+      } else {
+        pageSelectorBar.classList.remove('visible');
+      }
+
+      activePageNum = 1;
+      pageSelectDropdown.value = 1;
+
+      await renderPage(1);
+      hideStatus();
+
+      controlsPanel.classList.add('visible');
+      workspaceGrid.classList.add('visible');
+      setStep(2);
+
+      processAndCropPage(1);
+    }
+
+    async function changeActivePage(pageNumStr) {
+      const pageNum = parseInt(pageNumStr, 10);
+      activePageNum = pageNum;
+
+      if (!pageCanvases[pageNum]) {
+        showStatus(`Rendering page ${pageNum}...`, false, true);
+        await renderPage(pageNum);
+        hideStatus();
+      }
+
+      processAndCropPage(pageNum);
+    }
+
+    async function renderPage(pageNum) {
+      const page = await pdfDoc.getPage(pageNum);
+
+      // High resolution scale factor (4.0 for sharp 300+ DPI quality)
+      const viewport = page.getViewport({ scale: 4.0 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      }).promise;
+
+      pageCanvases[pageNum] = canvas;
+    }
+
+    // Crop Processing & Visual Overlay Positioning
+    function processAndCropPage(pageNum) {
+      const srcCanvas = pageCanvases[pageNum];
+      if (!srcCanvas) return;
+
+      // Draw full page on preview canvas
+      const fullCtx = fullPageCanvas.getContext('2d');
+      fullPageCanvas.width = srcCanvas.width;
+      fullPageCanvas.height = srcCanvas.height;
+      fullCtx.drawImage(srcCanvas, 0, 0);
+
+      // Calculate crop parameters
+      const widthPct = (parseFloat(numWidth.value) || 80) / 100;
+      const offsetX = ((parseFloat(numOffsetX.value) || 0) / 100) * srcCanvas.width;
+      const offsetY = ((parseFloat(numOffsetY.value) || 0) / 100) * srcCanvas.height;
+
+      let cropW = srcCanvas.width * widthPct;
+      let cropH = cropW / TARGET_ASPECT_RATIO;
+
+      if (cropH > srcCanvas.height * 0.95) {
+        cropH = srcCanvas.height * 0.95;
+        cropW = cropH * TARGET_ASPECT_RATIO;
+      }
+
+      let cropX = (srcCanvas.width - cropW) / 2 + offsetX;
+      let cropY = (srcCanvas.height - cropH) / 2 + offsetY;
+
+      cropX = Math.max(0, Math.min(srcCanvas.width - cropW, cropX));
+      cropY = Math.max(0, Math.min(srcCanvas.height - cropH, cropY));
+
+      // Update Visual Crop Overlay Box CSS Position
+      const displayW = fullPageCanvas.clientWidth || fullPageCanvas.offsetWidth || 340;
+      const scaleRatio = displayW / srcCanvas.width;
+
+      cropBoxOverlay.style.width = (cropW * scaleRatio) + 'px';
+      cropBoxOverlay.style.height = (cropH * scaleRatio) + 'px';
+      cropBoxOverlay.style.left = (cropX * scaleRatio) + 'px';
+      cropBoxOverlay.style.top = (cropY * scaleRatio) + 'px';
+
+      // Output cropped canvas
+      cardCanvas.width = cropW;
+      cardCanvas.height = cropH;
+
+      const outCtx = cardCanvas.getContext('2d');
+      outCtx.imageSmoothingEnabled = true;
+      outCtx.imageSmoothingQuality = 'high';
+
+      outCtx.drawImage(
+        srcCanvas,
+        cropX, cropY, cropW, cropH,
+        0, 0, cropW, cropH
+      );
+    }
+
+    // Drag and Resize Interactivity on Visual Overlay Box
+    cropBoxOverlay.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const handle = e.target.getAttribute('data-handle');
+      if (handle) {
+        isResizing = true;
+        resizeHandle = handle;
+      } else {
+        isDragging = true;
+      }
+
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+
+      const srcCanvas = pageCanvases[activePageNum];
+      if (srcCanvas) {
+        const displayW = fullPageCanvas.clientWidth;
+        const scaleRatio = displayW / srcCanvas.width;
+        
+        initialCropW = parseFloat(cropBoxOverlay.style.width) / scaleRatio;
+        initialCropX = parseFloat(cropBoxOverlay.style.left) / scaleRatio;
+        initialCropY = parseFloat(cropBoxOverlay.style.top) / scaleRatio;
+      }
+
+      cropBoxOverlay.setPointerCapture(e.pointerId);
+    });
+
+    cropBoxOverlay.addEventListener('pointermove', (e) => {
+      if (!isDragging && !isResizing) return;
+      e.preventDefault();
+
+      const srcCanvas = pageCanvases[activePageNum];
+      if (!srcCanvas) return;
+
+      const displayW = fullPageCanvas.clientWidth;
+      const scaleRatio = displayW / srcCanvas.width;
+
+      const deltaX = (e.clientX - dragStartX) / scaleRatio;
+      const deltaY = (e.clientY - dragStartY) / scaleRatio;
+
+      if (isDragging) {
+        let newX = initialCropX + deltaX;
+        let newY = initialCropY + deltaY;
+
+        let cropW = srcCanvas.width * ((parseFloat(numWidth.value) || 80) / 100);
+        let cropH = cropW / TARGET_ASPECT_RATIO;
+
+        newX = Math.max(0, Math.min(srcCanvas.width - cropW, newX));
+        newY = Math.max(0, Math.min(srcCanvas.height - cropH, newY));
+
+        const newOffsetXPct = ((newX - (srcCanvas.width - cropW) / 2) / srcCanvas.width) * 100;
+        const newOffsetYPct = ((newY - (srcCanvas.height - cropH) / 2) / srcCanvas.height) * 100;
+
+        numOffsetX.value = newOffsetXPct.toFixed(1);
+        sliderOffsetX.value = newOffsetXPct.toFixed(1);
+
+        numOffsetY.value = newOffsetYPct.toFixed(1);
+        sliderOffsetY.value = newOffsetYPct.toFixed(1);
+      } else if (isResizing) {
+        let newCropW = initialCropW;
+        if (resizeHandle === 'se' || resizeHandle === 'ne') {
+          newCropW = initialCropW + deltaX;
+        } else if (resizeHandle === 'sw' || resizeHandle === 'nw') {
+          newCropW = initialCropW - deltaX;
+        }
+
+        const newWidthPct = (newCropW / srcCanvas.width) * 100;
+        const clampedWidthPct = Math.max(30, Math.min(98, newWidthPct));
+
+        numWidth.value = clampedWidthPct.toFixed(1);
+        sliderWidth.value = clampedWidthPct.toFixed(1);
+      }
+
+      saveCurrentPresetValues();
+      processAndCropPage(activePageNum);
+    });
+
+    ['pointerup', 'pointercancel'].forEach(evt => {
+      cropBoxOverlay.addEventListener(evt, (e) => {
+        isDragging = false;
+        isResizing = false;
+        resizeHandle = null;
+        try {
+          cropBoxOverlay.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+      });
+    });
+
+    // Window Resize Handler to update overlay dimensions
+    window.addEventListener('resize', () => {
+      if (pageCanvases[activePageNum]) {
+        processAndCropPage(activePageNum);
+      }
+    });
+
+    // Printing Engine
+    function printCard() {
+      const imgDataUrl = cardCanvas.toDataURL('image/png', 1.0);
+
+      const printFrame = document.getElementById('printFrame');
+      const frameDoc = printFrame.contentWindow.document;
+
+      frameDoc.open();
+      frameDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Print Card - Page ${activePageNum} (${activePreset === 'print1' ? 'Print 1' : 'Print 2'})</title>
+          <style>
+            @page {
+              size: 85.6mm 53.98mm;
+              margin: 0;
+            }
+            html, body {
+              width: 85.6mm;
+              height: 53.98mm;
+              margin: 0;
+              padding: 0;
+              overflow: hidden;
+              background: #ffffff;
+            }
+            img {
+              width: 85.6mm;
+              height: 53.98mm;
+              display: block;
+              object-fit: fill;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${imgDataUrl}" onload="window.focus(); window.print();" />
+        </body>
+        </html>
+      `);
+      frameDoc.close();
+
+      setStep(3);
+      showStatus(`Page ${activePageNum} (${activePreset === 'print1' ? 'Print 1' : 'Print 2'}) sent to printer!`, false, false);
+    }
+
+    // Reset Application State
+    function resetAll() {
+      pdfDoc = null;
+      pageCanvases = {};
+      activePageNum = 1;
+      pdfFileInput.value = '';
+
+      const ctx = cardCanvas.getContext('2d');
+      ctx.clearRect(0, 0, cardCanvas.width, cardCanvas.height);
+
+      pageSelectorBar.classList.remove('visible');
+      controlsPanel.classList.remove('visible');
+      workspaceGrid.classList.remove('visible');
+      hideStatus();
+      setStep(1);
+    }
+
+    // On Load: Initialize Presets
+    window.addEventListener('DOMContentLoaded', () => {
+      initPresets();
+    });
+  </script>
+</body>
+</html>
